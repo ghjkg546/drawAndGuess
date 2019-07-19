@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>我画你猜</title>
+    <link rel="stylesheet" href="./game.css">
+    <link rel="stylesheet" href="./bootstrap.css">
+    <script type="text/javascript" src="vue.js"></script>
+</head>
+
+<body>
+<div id="app">
+    <section id="game">
+        <h1>我画 & 你猜</h1>
+        <div class="wrap clearfix">
+            <canvas id="canvas" width="500" height="400" @mousemove="drawline" @mousedown="startDraw"
+                    @mouseup="endDraw"></canvas>
+            <div id="history-wrapper">
+                <ul id="history"></ul>
+            </div>
+        </div>
+        <h1>{{questions.content}}</h1>
+        <div class="question" id='question'>
+            <ul>
+                <li :class='["classify", (showColor && item.value == currentIndex)? (currentIndex==rightAnswer ? "choose_right":"choose_wrong") : "not_choose"]'
+                    v-for="(item, key, index) in answers" @click="sendAnswer(item)">{{item.content}}
+                </li>
+            </ul>
+        </div>
+
+    </section>
+
+    <section class="user_list">
+        房间内用户:
+        <ul>
+            <li v-for="(item, key, index) in users">{{item.name}}</li>
+        </ul>
+    </section>
+    <div class="clearfix"></div>
+    <div class="operate">
+        <p>当前在画的人：{{drawingUser}}</p>
+        <p>当前登录用户：{{name}}</p>
+        <p>系统：{{extra}}</p>
+        <input type="text" id="input" v-model="sendText">
+        <input type="button" @click="sendmsg" value="发送">
+        <input type="button" id="start" value="开始">
+        <input type="button" id="restart" value="重新开始">
+        <input type="button" id="join" value="登录" @click="login">
+        <input type="button" id="refresh_answer" value="刷新答案" @click="refresh_answer">
+    </div>
+    <ul class="scoreList">
+        <li v-for="(item, key, index) in scoreList">{{item.name}}说:{{item.content}}</li>
+    </ul>
+</div>
+
+</body>
+</html>
+<script>
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script src="./socket.io/socket.io.js"></script>
+<script src="./chat.js">
+</script>
