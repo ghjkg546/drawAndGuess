@@ -6,7 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>我画你猜</title>
     <link rel="stylesheet" href="./game.css">
-    <link rel="stylesheet" href="./bootstrap.css">
     <script type="text/javascript" src="vue.js"></script>
 </head>
 
@@ -37,6 +36,24 @@
         <ul>
             <li v-for="(item, key, index) in users">{{item.name}}</li>
         </ul>
+        <p>画笔选项</p>
+        <div class="draw_options" v-show = "drawingUser == name">
+            <p>画笔颜色</p>
+            <div class="color">
+                <label><input type="radio" name="radio" value="#ff0000" v-model="current_color"><span class="red"></span></label>
+                <label><input type="radio" name="radio" value="#000000" v-model="current_color"><span class="black"></span></label>
+                <label><input type="radio" name="radio" value="#33ccff" v-model="current_color"><span class="blue"></span></label>
+                <label><input type="radio" name="radio" value="#339933" v-model="current_color"><span class="green"></span></label>
+            </div>
+            <p>画笔粗细</p>
+            <div class="pen_width">
+                <label><input type="radio" name="radio2" value="1" v-model="penWidth">1</label>
+                <label><input type="radio" name="radio2" value="3" v-model="penWidth">3</label>
+                <label><input type="radio" name="radio2" value="5" v-model="penWidth">5</label>
+                <label><input type="radio" name="radio2" value="7" v-model="penWidth">7</label>
+            </div>
+        </div>
+        <p>画笔选项</p>
     </section>
     <div class="clearfix"></div>
     <div class="operate">
@@ -48,7 +65,6 @@
         <input type="button" id="start" value="开始">
         <input type="button" id="restart" value="重新开始">
         <input type="button" id="join" value="登录" @click="login">
-        <input type="button" id="refresh_answer" value="刷新答案" @click="refresh_answer">
     </div>
     <ul class="scoreList">
         <li v-for="(item, key, index) in scoreList">{{item.name}}说:{{item.content}}</li>
@@ -61,6 +77,5 @@
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
-<script src="./socket.io/socket.io.js"></script>
 <script src="./chat.js">
 </script>

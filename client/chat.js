@@ -18,15 +18,6 @@ const GETANSWER = 4;
 const GETSOCRE = 5;
 
 
-$("#start").click(startGame);
-$("#input").keyup(e = > {
-    let keyCode = e.keyCode;
-if (keyCode === 13) {
-    sendMsg();
-}
-})
-
-
 // 重玩
 $("#restart").on("click", function () {
     let data = {};
@@ -36,12 +27,6 @@ $("#restart").on("click", function () {
 
     $(this).hide();
 });
-
-// $("#refresh_answer").on("click", function() {
-
-
-//     //$(this).hide();
-// });
 
 function startGame() {
     // let data={};
@@ -91,7 +76,9 @@ var header = new Vue({
         socket: {},
         ctx: {},
         name: '',//登录的用户名
-        extra: ''
+        extra: '',
+        current_color : '#339933',
+        penWidth: 1
 
     },
 
@@ -135,13 +122,26 @@ var header = new Vue({
         this.socket.onmessage = this.websocketonmessage;
 
     },
+    watch: {
+        current_color(val) {
+            let that=this;
+            let data = {};
+            data.color = this.current_color;
+            data.type = "change_color";
+            that.socket.send(JSON.stringify(data));
+        },
+        penWidth(val) {
+            let that=this;
+            let data = {};
+            data.width = that.penWidth;
+            data.type = "pen_width";
+            that.socket.send(JSON.stringify(data));
+        },
+    },
     mounted: function () {
         //this.login();
     },
     methods: {
-        toArray(original) {
-            return JSON.parse(JSON.stringify(original));
-        },
         websocketonmessage(event) { //数据接收
             that = this;
             msg = event.data
@@ -153,9 +153,7 @@ var header = new Vue({
                 let tmp = new Object();
                 tmp.content = data.content;
                 tmp.name = data.user;
-                //console.log(JSON.stringify(tmp))
                 ori_list.push(tmp);
-                //console.log(list)
                 that.drawingUser = data.drawingUser;
                 that.scoreList = ori_list;
                 that.extra = data.extra;
@@ -170,6 +168,11 @@ var header = new Vue({
                 that.extra = data.extra;
                 that.users = data.users;
                 that.drawingUser = data.drawingUser;
+            } else if (data.type === 'change_color') {
+                that.current_color = data.color;
+            }
+            else if (data.type === 'pen_width') {
+                that.penWidth = data.width;
             }
 
             /*else if(data.type==GAME){
@@ -178,15 +181,6 @@ var header = new Vue({
              $("#restart").hide();
              $("#start").hide();
              $("#history").html("");
-
-             // 判断是不是画画的还是猜图的
-             if (data.isPlayer) {
-             gameObj.isPlayer = true;
-             $("#history").append(`<li>轮到你了，请画出<span class="answer">${data.answer}</span>吧</li>`);
-             } else {
-             $("#history").append(`<li>游戏即将开始，请准备，有一分钟时间猜答案哦~</li>`);
-             }
-             }
 
              if(data.state==gameObj.OVER){
              gameObj.isPlayer=false;
@@ -209,12 +203,8 @@ var header = new Vue({
                 that.socket.send(JSON.stringify(data));
             }
 
-        }, refresh_answer() {
-            let data = {};
-            data.state = 0;
-            data.type = GETANSWER;
-            that.socket.send(JSON.stringify(data));
-        }, sendmsg() {
+        },
+        sendmsg() {
 
             let that = this;
             let value = that.sendText;
@@ -256,7 +246,7 @@ var header = new Vue({
         },
         startDraw(event) {
             mouseX = event.offsetX,
-                mouseY = event.offsetY;
+            mouseY = event.offsetY;
             gameObj.startX = mouseX;
             gameObj.startY = mouseY;
 
@@ -270,8 +260,8 @@ var header = new Vue({
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = "#222";
+            ctx.lineWidth = this.penWidth;
+            ctx.strokeStyle = this.current_color;
             ctx.stroke();
         },
         clearBoard(){

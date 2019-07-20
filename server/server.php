@@ -53,9 +53,9 @@ class WebsocketTest
                 }
             }*/ elseif ($type == 'bind') {
                 //限制房间最大人数
-                if ($info['count'] < 4) {
+                if ($this->getUserCount() < 4) {
                     $this->redis->hSet('users', $data['user'], $frame->fd);
-                    $info = $this->sendMesToAllUser($server, $data, 0, 'users');
+                    $this->sendMesToAllUser($server, $data, 0, 'users');
                 } else {
                     $res_data['content'] = '房间人数已满';
                     $res_data['type'] = 'message';
@@ -67,18 +67,27 @@ class WebsocketTest
                     $res_data['createAt'] = date('m-d H:i:s');
                     $server->push($frame->fd, json_encode($res_data));
                 }
-            }
-
-            if ($data['type'] == 'line') {
-
+            } elseif ($type == 'change_color'){
+                foreach ($server->connections as $key => $fd) {
+                    $res_data['type'] = 'change_color';
+                    $res_data['color'] = $data['color'];
+                    $res_data['createAt'] = date('m-d H:i:s');
+                    $server->push($fd, json_encode($res_data));
+                }
+            } elseif ($type == 'pen_width'){
+                foreach ($server->connections as $key => $fd) {
+                    $res_data = [];
+                    $res_data['type'] = 'pen_width';
+                    $res_data['width'] = $data['width'];
+                    $res_data['createAt'] = date('m-d H:i:s');
+                    $server->push($fd, json_encode($res_data));
+                }
+            } elseif ($data['type'] == 'line') {
                 $this->socket_obj[$data['user']] = $frame->fd;
                 foreach ($server->connections as $key => $fd) {
                     $server->push($fd, $frame->data);
                 }
-            }
-
-
-            if ($data['type'] == 'pic') {
+            } elseif ($data['type'] == 'pic') {
                 foreach ($server->connections as $key => $fd) {
                     $res_data['type'] = 'pic';
                     $res_data['pic_url'] = $data['pic_url'];
@@ -157,6 +166,15 @@ class WebsocketTest
     {
         $users = !empty($this->redis->hgetall('users')) ? $this->redis->hgetall('users') : [];
         return array_search($fd, $users);
+    }
+
+    //获取当前用户数
+    public function getUserCount(){
+        $users = !empty($this->redis->hgetall('users')) ? $this->redis->hgetall('users') : [];
+        foreach ($users as $k => $v) {
+            $tmp_user[] = ['name' => $k];
+        }
+        return count($users);
     }
 }
 
