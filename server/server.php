@@ -1,7 +1,7 @@
 <?php
 header("Content-type:text/html;charset=utf-8");
 
-class WebsocketTest
+class WebsocketDraw
 {
     public $server;
     public $colors = ['#00a1f4', '#0cc', '#f44336', '#795548', '#e91e63', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#ffc107', '#607d8b', '#ff9800', '#ff5722'];
@@ -173,4 +173,4 @@ class WebsocketTest
     }
 }
 
-new WebsocketTest();
+new WebsocketDraw();
