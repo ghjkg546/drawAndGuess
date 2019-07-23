@@ -37,13 +37,17 @@
             <li v-for="(item, key, index) in users">{{item.name}}</li>
         </ul>
         <p>画笔选项</p>
-        <div class="draw_options" v-show = "drawingUser == name">
+        <div class="draw_options" v-show="drawingUser == name">
             <p>画笔颜色</p>
             <div class="color">
-                <label><input type="radio" name="radio" value="#ff0000" v-model="current_color"><span class="red"></span></label>
-                <label><input type="radio" name="radio" value="#000000" v-model="current_color"><span class="black"></span></label>
-                <label><input type="radio" name="radio" value="#33ccff" v-model="current_color"><span class="blue"></span></label>
-                <label><input type="radio" name="radio" value="#339933" v-model="current_color"><span class="green"></span></label>
+                <label><input type="radio" name="radio" value="#ff0000" v-model="current_color"><span
+                        class="red"></span></label>
+                <label><input type="radio" name="radio" value="#000000" v-model="current_color"><span
+                        class="black"></span></label>
+                <label><input type="radio" name="radio" value="#33ccff" v-model="current_color"><span
+                        class="blue"></span></label>
+                <label><input type="radio" name="radio" value="#339933" v-model="current_color"><span
+                        class="green"></span></label>
             </div>
             <p>画笔粗细</p>
             <div class="pen_width">
@@ -65,10 +69,22 @@
         <input type="button" id="start" value="开始">
         <input type="button" id="restart" value="重新开始">
         <input type="button" id="join" value="登录" @click="login">
+        <button class="send_pic" @click="showPicBox=!showPicBox">
+            发送表情
+            <ul class="list" v-show="showPicBox">
+                <li v-for="(url, key, index) in imageList" ><img :src="url" alt="" @click="sendPic(url)"></li>
+            </ul>
+        </button>
     </div>
-    <ul class="scoreList">
-        <li v-for="(item, key, index) in scoreList">{{item.name}}说:{{item.content}}</li>
-    </ul>
+    <div id="diglogList">
+        <ul class="scoreList">
+            <li v-for="(item, key, index) in scoreList">
+                <div v-if="item.type=='text'">{{item.name}}说:{{item.content}}</div>
+                <div v-if="item.type=='image'"><img :src="item.url" alt=""></div>
+            </li>
+        </ul>
+    </div>
+
 </div>
 
 </body>

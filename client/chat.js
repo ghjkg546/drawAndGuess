@@ -57,7 +57,7 @@ function startGame() {
 var header = new Vue({
     el: "#app",
     data: {
-        scoreList: [{"name": "xj", "content": 10}, {"name": "xj1", "content": 20}, {"name": "xj2", "content": 30}],
+        scoreList: [{"type":"text","name": "xj", "content": 10}, {"type":"text","name": "xj1", "content": 20}, {"type":"image","url": "images/wz_3.jpg", "content": 30}],
         users: [{"name": "xj"}],
         explain: "",
         caohaogan: 0,
@@ -78,7 +78,9 @@ var header = new Vue({
         name: '',//登录的用户名
         extra: '',
         current_color : '#339933',
-        penWidth: 1
+        penWidth: 1,
+        imageList : ['images/wz_2.jpg','images/wz_3.jpg','images/wz_1.jpg','images/wz_5.jpg'],
+        showPicBox:0
 
     },
 
@@ -87,8 +89,6 @@ var header = new Vue({
         let canvas = document.getElementById("canvas");
 
         that.ctx = canvas.getContext("2d");
-
-        //this.drawLine(that.ctx,50,50,100,100,1)
 
         let msg = "";
 
@@ -147,12 +147,18 @@ var header = new Vue({
             msg = event.data
             let data = JSON.parse(msg);
             console.log(data)
-            if (data.type == "message") {
+            if (data.type == "message" || data.type == 'image') {
                 let ori_list = that.scoreList;
                 //console.log(ori_list)
                 let tmp = new Object();
-                tmp.content = data.content;
+                if(data.type == 'message'){
+                    tmp.content = data.content;
+                } else {
+                    tmp.url = data.url;
+                }
+                tmp.type = data.type;
                 tmp.name = data.user;
+                console.log(tmp)
                 ori_list.push(tmp);
                 that.drawingUser = data.drawingUser;
                 that.scoreList = ori_list;
@@ -160,6 +166,12 @@ var header = new Vue({
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
+                let ele = document.getElementById('app');
+                console.log(ele.scrollHeight)
+                this.$nextTick(() => {
+                    document.documentElement.scrollTop =ele.scrollHeight;
+                    that.showPicBox = 0;
+                });
 
             } else if (data.type === 'line') {
                 this.drawLine(data.startX, data.startY, data.endX, data.endY, 1);
@@ -268,7 +280,17 @@ var header = new Vue({
             let canvas = document.getElementById("canvas");
             ctx = canvas.getContext("2d");
             canvas.height = canvas.height;
-        }
+        },
+        sendPic(url) {
+
+                let data = {};
+                data.type = "image";
+                data.user = this.name;
+                data.url = url;
+                console.log(data)
+                this.socket.send(JSON.stringify(data));
+                this.showPicBox =0;
+        },
 
 
     }
