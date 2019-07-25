@@ -123,3 +123,6 @@ canvas {
     background-color: #fff;border-radius: 5px}
 .send_pic img{width: 100px;height: 100px;margin-top: 20px}
 .dialogList .list_item{margin-top: 10px}
+
+.seats li{display: inline-block;width: 50px;height: 50px;margin-left: 10px;border-radius: 2px;border: 1px solid #333333;
+text-align: center;}

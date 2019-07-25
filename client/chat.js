@@ -57,8 +57,8 @@ function startGame() {
 var header = new Vue({
     el: "#app",
     data: {
-        scoreList: [{"type":"text","name": "xj", "content": 10}, {"type":"text","name": "xj1", "content": 20}, {"type":"image","url": "images/wz_3.jpg", "content": 30}],
-        users: [{"name": "xj"}],
+        scoreList: [],
+        users: [],
         explain: "",
         caohaogan: 0,
         show_btn: false,
@@ -80,7 +80,10 @@ var header = new Vue({
         current_color : '#339933',
         penWidth: 1,
         imageList : ['images/wz_2.jpg','images/wz_3.jpg','images/wz_1.jpg','images/wz_5.jpg'],
-        showPicBox:0
+        showPicBox:0,
+        score:[],
+        seats : [{'name':'空位'},{'name':'空位'},{'name':'空位'},{'name':'空位'}],
+        seatNum:0
 
     },
 
@@ -158,16 +161,16 @@ var header = new Vue({
                 }
                 tmp.type = data.type;
                 tmp.name = data.user;
-                console.log(tmp)
                 ori_list.push(tmp);
                 that.drawingUser = data.drawingUser;
                 that.scoreList = ori_list;
                 that.extra = data.extra;
+                that.score = data.score;
+                that.users = data.users;
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
                 let ele = document.getElementById('app');
-                console.log(ele.scrollHeight)
                 this.$nextTick(() => {
                     document.documentElement.scrollTop =ele.scrollHeight;
                     that.showPicBox = 0;
@@ -176,9 +179,12 @@ var header = new Vue({
             } else if (data.type === 'line') {
                 this.drawLine(data.startX, data.startY, data.endX, data.endY, 1);
             } else if (data.type === 'users') {
-                console.log(data);
+
                 that.extra = data.extra;
                 that.users = data.users;
+                that.score = data.score;
+                that.seats = data.seats;
+                console.log(that.seats);
                 that.drawingUser = data.drawingUser;
             } else if (data.type === 'change_color') {
                 that.current_color = data.color;
@@ -211,6 +217,7 @@ var header = new Vue({
                 let data = {};
                 data.user = name;
                 data.type = "bind";
+                data.seat_num = that.seatNum;
                 console.log(data)
                 that.socket.send(JSON.stringify(data));
             }
@@ -233,8 +240,8 @@ var header = new Vue({
         drawline(event) {
             let that = this;
             if (gameObj.isDrawing && that.name == that.drawingUser) {
-                mouseX = event.offsetX,
-                    mouseY = event.offsetY;
+                mouseX = event.offsetX;
+                mouseY = event.offsetY;
                 //console.log(e.clientX,e.clientY)
                 if (gameObj.startX !== mouseX && gameObj.startY !== mouseY) {
                     //console.log(gameObj.startX,gameObj.startY,mouseX,mouseY)
@@ -291,6 +298,15 @@ var header = new Vue({
                 this.socket.send(JSON.stringify(data));
                 this.showPicBox =0;
         },
+        setSeat(num,item){
+            if(item.name != '空位'){
+                return false;
+            }
+            let that = this;
+            console.log(parseInt(num)+1)
+            that.seatNum = parseInt(num)+1;
+            that.login()
+        }
 
 
     }

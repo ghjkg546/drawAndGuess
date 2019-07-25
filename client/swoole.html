@@ -34,7 +34,11 @@
     <section class="user_list">
         房间内用户:
         <ul>
-            <li v-for="(item, key, index) in users">{{item.name}}</li>
+            <li v-for="(item, key, index) in users">{{item.name}}-得分：{{item.score}}</li>
+        </ul>
+        分数:
+        <ul>
+            <li v-for="(item, key, index) in score">{{item.name}}:{{item.score}}</li>
         </ul>
         <p>画笔选项</p>
         <div class="draw_options" v-show="drawingUser == name">
@@ -57,7 +61,10 @@
                 <label><input type="radio" name="radio2" value="7" v-model="penWidth">7</label>
             </div>
         </div>
-        <p>画笔选项</p>
+        <p>座位</p>
+        <ul class="seats">
+            <li @click="setSeat(key,item)" v-for="(item, key, index) in seats">{{item.name}}</li>
+        </ul>
     </section>
     <div class="clearfix"></div>
     <div class="operate">
