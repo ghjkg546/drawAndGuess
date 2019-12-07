@@ -28,6 +28,8 @@ $("#restart").on("click", function () {
     $(this).hide();
 });
 
+
+
 function startGame() {
     // let data={};
     // data.state = gameObj.START;
@@ -149,7 +151,7 @@ var header = new Vue({
             that = this;
             msg = event.data
             let data = JSON.parse(msg);
-            console.log(data)
+
             if (data.type == "message" || data.type == 'image') {
                 let ori_list = that.scoreList;
                 //console.log(ori_list)
@@ -162,7 +164,7 @@ var header = new Vue({
                 tmp.type = data.type;
                 tmp.name = data.user;
                 ori_list.push(tmp);
-                that.drawingUser = data.drawingUser;
+                //that.drawingUser = data.drawingUser;
                 that.scoreList = ori_list;
                 that.extra = data.extra;
                 that.score = data.score;
@@ -185,28 +187,24 @@ var header = new Vue({
                 that.score = data.score;
                 that.seats = data.seats;
                 console.log(that.seats);
-                that.drawingUser = data.drawingUser;
+                //that.drawingUser = data.drawingUser;
             } else if (data.type === 'change_color') {
                 that.current_color = data.color;
             }
             else if (data.type === 'pen_width') {
                 that.penWidth = data.width;
+            } else if (data.type == "startgame") {
+                console.log(data.drawingUser)
+                that.drawingUser = data.drawingUser;
+                that.extra = data.extra;
+                that.score = data.score;
+                that.users = data.users;
+                if (data.clearBoard == 1) {
+                    this.clearBoard();
+                }
             }
 
-            /*else if(data.type==GAME){
-             if(data.state===gameObj.START){
-             ctx.clearRect(0,0,cvs.width,cvs.height);
-             $("#restart").hide();
-             $("#start").hide();
-             $("#history").html("");
 
-             if(data.state==gameObj.OVER){
-             gameObj.isPlayer=false;
-             $("#restart").hide();
-             $("#start").show();
-             $("#history").append(`<li>本轮游戏的获胜者是： <span class="winner">${data.winner}</span>，正确答案是： ${data.answer}</li>`);
-             }
-             } */
         },
         login() {
             var name = prompt("请输入您的名字", ""); //将输入的内容赋给变量 name ，
@@ -234,8 +232,17 @@ var header = new Vue({
                 data.content = value;
                 console.log(JSON.stringify(data))
                 that.socket.send(JSON.stringify(data));
-                $("#input").val("");
+                that.sendText = '';
             }
+        },
+        startgame() {
+            console.log(44)
+            let that = this;
+            let data = {};
+            data.type = "startgame";
+            data.user = this.name;
+            console.log(data)
+            that.socket.send(JSON.stringify(data));
         },
         drawline(event) {
             let that = this;

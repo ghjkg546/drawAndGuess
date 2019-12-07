@@ -11,18 +11,23 @@ class WebsocketDraw
     public $socket_obj = [];
     public $redis = [];
     public $draw_index = 0; //当前画画人的索引
+    public $remain_time = 30;
+    public $user_count=0;
 
     public function __construct()
     {
         $this->server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+        $this->server->on('WorkerStart', array($this, 'onWorkerStart'));
         $this->redis = new Redis();
         $this->redis->connect('127.0.0.1', 6379);
         $this->redis->delete('score');
+        $this->redis->set('timer', $this->remain_time);
         $user_keys = $this->redis->keys('users*');
         foreach ($user_keys as $v) {
             $this->redis->delete($v);
         }
         $this->redis->set('draw_index', 0);
+        $this->redis->set('user_count', 0);
 
         $this->resetWords();
         $this->server->on('open', function (swoole_websocket_server $server, $request) {
@@ -52,6 +57,8 @@ class WebsocketDraw
                     }
                     break;
                 case 'bind':
+                    $this->changeUserCount(1);
+                    echo '人数:'. $this->getUserCount();
                     //限制房间最大人数
                     if ($this->getUserCount() < 4) {
                         $user_info = [
@@ -103,12 +110,24 @@ class WebsocketDraw
                         $server->push($fd, json_encode($res_data));
                     }
                     break;
+                case 'startgame':
+                    foreach ($server->connections as $key => $fd) {
+                        $res_data['content'] = '游戏开始了';
+                        $res_data['type'] = 'startgame';
+                        $res_data['extra'] = '开始了';
+                        $res_data['drawingUser'] = $data['user'];
+                        $res_data['createAt'] = date('m-d H:i:s');
+                        $server->push($fd, json_encode($res_data));
+                    }
+                    break;
                 default:
                     break;
             }
 
         });
         $this->server->on('close', function ($ser, $fd) {
+            $this->changeUserCount(-1);
+            echo '人数:'. $this->getUserCount();
             $name = $this->getUserNameByFd($fd);
             $this->redis->hDel('users', $name);
             echo "client {$fd} closed\n";
@@ -123,6 +142,71 @@ class WebsocketDraw
         $this->server->start();
     }
 
+    public function changeUserCount($num){
+        $this->redis->incr('user_count',$num);
+    }
+
+    public function getUserCount(){
+        return $this->redis->get('user_count');
+    }
+
+    public function onWorkerStart($server, $worker_id)
+    {
+        // 在Worker进程开启时绑定定时器
+        echo "onWorkerStart\n";
+        // 只有当worker_id为0时才添加定时器,避免重复添加
+        if ($worker_id == 0) {
+            Swoole\Timer::tick(1000, function(){
+                //$this->redis->decr('timer');
+                //$remain_time = $this->redis->get('timer');
+                if($this->remain_time>1){
+                    $this->remain_time-=1;
+                    foreach ($this->server->connections as $key => $fd) {
+                        $res_data['content'] = 'aa';
+                        $res_data['type'] = 'message';
+                        $res_data['extra'] =  $this->remain_time;
+                        $res_data['user'] = 'aa';
+                        $res_data['color'] = $this->my_color;
+                        $res_data['createAt'] = date('m-d H:i:s');
+                        $this->server->push($fd, json_encode($res_data));
+                    }
+                } else {
+                    $this->resetWords();
+                    $this->remain_time=10;
+                    $draw_index = $this->setDrawIndex(1);
+
+                    $user_keys = $this->redis->keys('users*');
+                    $keys_user = [];
+                    $fd_user = [];
+                    $tmp_user = [];
+                    foreach ($user_keys as $v) {
+                        $user_info = !empty($this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score'])) ? $this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score']) : [];
+                        $keys_user[$user_info['seat_num']] = $user_info;
+                        $tmp_user[] = ['name' => $user_info['name'], 'fd' => $user_info['fd'], 'score' => $user_info['score']];
+                        $fd_user[$user_info['name']] = $user_info['fd'];
+                    }
+                    $current_user = '';
+                    foreach ($tmp_user as $k => $v) {
+                        if ($k == $draw_index) {
+                            $current_user = $v['name'];
+                        }
+                    }
+                    print_r($current_user);
+                    foreach ($this->server->connections as $key => $fd) {
+                        $res_data['content'] = '时间到，下一位';
+                        $res_data['type'] = 'startgame';
+                        $res_data['extra'] = $this->remain_time;
+                        $res_data['drawingUser'] = $current_user;
+                        $res_data['color'] = $this->my_color;
+                        $res_data['createAt'] = date('m-d H:i:s');
+                        $this->server->push($fd, json_encode($res_data));
+                    }
+                }
+
+            });
+        }
+    }
+
     public function resetWords()
     {
         $this->answer = $this->words[mt_rand(0, count($this->words) - 1)];
@@ -135,6 +219,7 @@ class WebsocketDraw
         $user_keys = $this->redis->keys('users*');
         $keys_user = [];
         $fd_user = [];
+        $tmp_user = [];
         foreach ($user_keys as $v) {
             $user_info = !empty($this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score'])) ? $this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score']) : [];
             $keys_user[$user_info['seat_num']] = $user_info;
@@ -150,13 +235,14 @@ class WebsocketDraw
             }
         }
         //调整当前画画人索引
-        $draw_index = $this->setDrawIndex($tmp_user,$increase_index);
+        $draw_index = $this->setDrawIndex($increase_index);
 
         foreach ($tmp_user as $k => $v) {
             if ($k == $draw_index) {
                 $current_user = $v['name'];
             }
         }
+        print_r($tmp_user);
         $content = $increase_index ? $data['user'] . '答对了' : (!empty($data['content']) ? $data['content'] : $data['user'] . ' 加入了游戏');
         $user = $increase_index ? '系统' : $data['user'];
         $answer = $this->redis->get('answer');
@@ -175,9 +261,9 @@ class WebsocketDraw
         }
     }
 
-    public function setDrawIndex($tmp_user, $increase_index)
+    public function setDrawIndex($increase_index)
     {
-        $user_count = count($tmp_user);
+        $user_count =$this->getUserCount();
         $draw_index = $this->redis->get('draw_index');
         if ($draw_index < $user_count - 1) {
             if ($increase_index) {
@@ -199,14 +285,6 @@ class WebsocketDraw
         return array_search($fd, $users);
     }
 
-    //获取当前用户数
-    public function getUserCount(){
-        $users = !empty($this->redis->hgetall('users')) ? $this->redis->hgetall('users') : [];
-        foreach ($users as $k => $v) {
-            $tmp_user[] = ['name' => $k];
-        }
-        return count($users);
-    }
 }
 
 new WebsocketDraw();

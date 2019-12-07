@@ -73,8 +73,7 @@
         <p>系统：{{extra}}</p>
         <input type="text" id="input" v-model="sendText">
         <input type="button" @click="sendmsg" value="发送">
-        <input type="button" id="start" value="开始">
-        <input type="button" id="restart" value="重新开始">
+        <input type="button" @click="startgame" value="开始">
         <input type="button" id="join" value="登录" @click="login">
         <button class="send_pic" @click="showPicBox=!showPicBox">
             发送表情
