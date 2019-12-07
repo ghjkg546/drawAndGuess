@@ -82,11 +82,12 @@
             </ul>
         </button>
     </div>
+
     <div id="diglogList">
         <ul class="scoreList">
             <li v-for="(item, key, index) in scoreList">
-                <div v-if="item.type=='text'">{{item.name}}说:{{item.content}}</div>
-                <div v-if="item.type=='image'"><img :src="item.url" alt=""></div>
+                <div v-if="item.content_type=='text'">{{item.name}}说:{{item.content}}</div>
+                <div v-if="item.content_type=='image'"><img :src="item.url" alt=""></div>
             </li>
         </ul>
     </div>

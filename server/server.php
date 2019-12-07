@@ -6,12 +6,13 @@ class WebsocketDraw
     public $server;
     //public $colors = ['#00a1f4', '#0cc', '#f44336', '#795548', '#e91e63', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#ffc107', '#607d8b', '#ff9800', '#ff5722'];
     public $my_color;
-    public $words = ['飞机', '苹果', '太阳'];
+    public $words = ['aa', 'bb', 'cc'];
     public $answer = '';
     public $socket_obj = [];
     public $redis = [];
     public $draw_index = 0; //当前画画人的索引
     public $remain_time = 30;
+    public $max_remain_time = 30;
     public $user_count=0;
 
     public function __construct()
@@ -58,7 +59,6 @@ class WebsocketDraw
                     break;
                 case 'bind':
                     $this->changeUserCount(1);
-                    echo '人数:'. $this->getUserCount();
                     //限制房间最大人数
                     if ($this->getUserCount() < 4) {
                         $user_info = [
@@ -119,6 +119,7 @@ class WebsocketDraw
                         $res_data['createAt'] = date('m-d H:i:s');
                         $server->push($fd, json_encode($res_data));
                     }
+                    $this->gameLoop();
                     break;
                 default:
                     break;
@@ -127,7 +128,6 @@ class WebsocketDraw
         });
         $this->server->on('close', function ($ser, $fd) {
             $this->changeUserCount(-1);
-            echo '人数:'. $this->getUserCount();
             $name = $this->getUserNameByFd($fd);
             $this->redis->hDel('users', $name);
             echo "client {$fd} closed\n";
@@ -142,6 +142,10 @@ class WebsocketDraw
         $this->server->start();
     }
 
+    public function setGameStatus($status){
+        $this->redis->set('status',$status);
+    }
+
     public function changeUserCount($num){
         $this->redis->incr('user_count',$num);
     }
@@ -150,60 +154,67 @@ class WebsocketDraw
         return $this->redis->get('user_count');
     }
 
+    /**
+     * 开始游戏循环
+     */
+    public function gameLoop(){
+        $tick_id = Swoole\Timer::tick(1000, function(){
+            $user_keys = $this->redis->keys('users*');
+            $keys_user = [];
+            $fd_user = [];
+            $tmp_user = [];
+            foreach ($user_keys as $v) {
+                $user_info = !empty($this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score'])) ? $this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score']) : [];
+                $keys_user[$user_info['seat_num']] = $user_info;
+                $tmp_user[] = ['name' => $user_info['name'], 'fd' => $user_info['fd'], 'score' => $user_info['score']];
+                $fd_user[$user_info['name']] = $user_info['fd'];
+            }
+            $current_user = '';
+            //$this->redis->decr('timer');
+            //$remain_time = $this->redis->get('timer');
+            if($this->remain_time>1){
+                $this->remain_time-=1;
+                foreach ($this->server->connections as $key => $fd) {
+                    $res_data['content'] = 'aa';
+                    $res_data['type'] = 'message';
+                    $res_data['extra'] =  $this->remain_time;
+                    $res_data['user'] = $tmp_user;
+                    $res_data['color'] = $this->my_color;
+                    $res_data['createAt'] = date('m-d H:i:s');
+                    $this->server->push($fd, json_encode($res_data));
+                }
+            } else {
+                $this->resetWords();
+                $this->remain_time=30;
+                $draw_index = $this->setDrawIndex(1);
+                foreach ($tmp_user as $k => $v) {
+                    if ($k == $draw_index) {
+                        $current_user = $v['name'];
+                    }
+                }
+                foreach ($this->server->connections as $key => $fd) {
+                    $res_data['content'] = '时间到，下一位';
+                    $res_data['type'] = 'startgame';
+                    $res_data['extra'] = $this->remain_time;
+                    $res_data['user'] = $tmp_user;
+                    $res_data['drawingUser'] = $current_user;
+                    $res_data['color'] = $this->my_color;
+                    $res_data['createAt'] = date('m-d H:i:s');
+                    $this->server->push($fd, json_encode($res_data));
+                }
+            }
+
+        });
+        $this->redis->set('tick_id',$tick_id);
+    }
+
     public function onWorkerStart($server, $worker_id)
     {
         // 在Worker进程开启时绑定定时器
         echo "onWorkerStart\n";
         // 只有当worker_id为0时才添加定时器,避免重复添加
         if ($worker_id == 0) {
-            Swoole\Timer::tick(1000, function(){
-                //$this->redis->decr('timer');
-                //$remain_time = $this->redis->get('timer');
-                if($this->remain_time>1){
-                    $this->remain_time-=1;
-                    foreach ($this->server->connections as $key => $fd) {
-                        $res_data['content'] = 'aa';
-                        $res_data['type'] = 'message';
-                        $res_data['extra'] =  $this->remain_time;
-                        $res_data['user'] = 'aa';
-                        $res_data['color'] = $this->my_color;
-                        $res_data['createAt'] = date('m-d H:i:s');
-                        $this->server->push($fd, json_encode($res_data));
-                    }
-                } else {
-                    $this->resetWords();
-                    $this->remain_time=10;
-                    $draw_index = $this->setDrawIndex(1);
 
-                    $user_keys = $this->redis->keys('users*');
-                    $keys_user = [];
-                    $fd_user = [];
-                    $tmp_user = [];
-                    foreach ($user_keys as $v) {
-                        $user_info = !empty($this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score'])) ? $this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score']) : [];
-                        $keys_user[$user_info['seat_num']] = $user_info;
-                        $tmp_user[] = ['name' => $user_info['name'], 'fd' => $user_info['fd'], 'score' => $user_info['score']];
-                        $fd_user[$user_info['name']] = $user_info['fd'];
-                    }
-                    $current_user = '';
-                    foreach ($tmp_user as $k => $v) {
-                        if ($k == $draw_index) {
-                            $current_user = $v['name'];
-                        }
-                    }
-                    print_r($current_user);
-                    foreach ($this->server->connections as $key => $fd) {
-                        $res_data['content'] = '时间到，下一位';
-                        $res_data['type'] = 'startgame';
-                        $res_data['extra'] = $this->remain_time;
-                        $res_data['drawingUser'] = $current_user;
-                        $res_data['color'] = $this->my_color;
-                        $res_data['createAt'] = date('m-d H:i:s');
-                        $this->server->push($fd, json_encode($res_data));
-                    }
-                }
-
-            });
         }
     }
 
@@ -211,6 +222,7 @@ class WebsocketDraw
     {
         $this->answer = $this->words[mt_rand(0, count($this->words) - 1)];
         $this->redis->set('answer', $this->answer);
+        $this->remain_time = $this->max_remain_time;
         echo $this->answer;
     }
 
@@ -220,6 +232,7 @@ class WebsocketDraw
         $keys_user = [];
         $fd_user = [];
         $tmp_user = [];
+        $user_info = [];
         foreach ($user_keys as $v) {
             $user_info = !empty($this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score'])) ? $this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score']) : [];
             $keys_user[$user_info['seat_num']] = $user_info;
@@ -242,21 +255,36 @@ class WebsocketDraw
                 $current_user = $v['name'];
             }
         }
-        print_r($tmp_user);
         $content = $increase_index ? $data['user'] . '答对了' : (!empty($data['content']) ? $data['content'] : $data['user'] . ' 加入了游戏');
+        $type = $increase_index ? 'change_score' : $type;
         $user = $increase_index ? '系统' : $data['user'];
         $answer = $this->redis->get('answer');
         foreach ($server->connections as $key => $fd) {
-            $res_data['content'] = $content;
-            $res_data['type'] = $type;
-            $res_data['extra'] = array_search($fd, $fd_user) == $current_user ? "你要画的是:{$answer}" : '快点猜吧';
-            $res_data['user'] = $user;
-            $res_data['users'] = $tmp_user;
-            $res_data['seats'] = $seats;
-            $res_data['clearBoard'] = $increase_index;
-            $res_data['drawingUser'] = $current_user;
-            $res_data['color'] = $this->my_color;
-            $res_data['createAt'] = date('m-d H:i:s');
+            if($type == 'change_score'){
+                $res_data['content'] = $content;
+                $res_data['type'] = $type;
+                $res_data['content_type'] = 'text';
+                $res_data['content_user'] = '系统';
+                $res_data['extra'] = array_search($fd, $fd_user) == $current_user ? "你要画的是:{$answer}" : '快点猜吧';
+                $res_data['user'] = $data['user'];
+                $res_data['score'] = $user_info['score'];
+                $res_data['seats'] = $seats;
+                $res_data['clearBoard'] = $increase_index;
+                $res_data['drawingUser'] = $current_user;
+                $res_data['createAt'] = date('m-d H:i:s');
+            } else {
+                $res_data['content'] = $content;
+                $res_data['type'] = $type;
+                $res_data['extra'] = array_search($fd, $fd_user) == $current_user ? "你要画的是:{$answer}" : '快点猜吧';
+                $res_data['user'] = $user;
+                $res_data['users'] = $tmp_user;
+                $res_data['seats'] = $seats;
+                $res_data['clearBoard'] = $increase_index;
+                $res_data['drawingUser'] = $current_user;
+                $res_data['color'] = $this->my_color;
+                $res_data['createAt'] = date('m-d H:i:s');
+            }
+
             $server->push($fd, json_encode($res_data));
         }
     }

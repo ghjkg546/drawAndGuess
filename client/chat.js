@@ -31,16 +31,6 @@ $("#restart").on("click", function () {
 
 
 function startGame() {
-    // let data={};
-    // data.state = gameObj.START;
-    //    data.type = GAME;
-    //    console.log(data)
-    //    socket.send(JSON.stringify(data));
-    //    if(data.error !== undefined){
-
-    //    } else {
-    //    	$(this).hide();
-    //    }
     console.log("send")
     let value = $.trim($("#input").val());
     if (value !== "") {
@@ -59,7 +49,7 @@ function startGame() {
 var header = new Vue({
     el: "#app",
     data: {
-        scoreList: [],
+        scoreList: [{'name':'系统','content':'欢迎进入游戏','content_type':'text'}],
         users: [],
         explain: "",
         caohaogan: 0,
@@ -103,23 +93,6 @@ var header = new Vue({
             console.log("服务器连接错误，请稍后重试");
         };
 
-
-        // socket.onopen = function (event) {
-        // 	console.log("连接成功")
-        // 	console.log(event)
-        //     // if(!sessionStorage.getItem("username")) {
-        //     //     setName();
-        //     // }else {
-        //     //     username = sessionStorage.getItem("username")
-        //     //     webSocket.send(JSON.stringify({
-        //     //         "message": username,
-        //     //         "type": "init"
-        //     //     }));
-        //     // }
-        // };
-        //    // console.log(event);
-
-        //};
         this.socket.onclose = function (event) {
             console.log("散了吧，服务器都关了");
         };
@@ -154,7 +127,6 @@ var header = new Vue({
 
             if (data.type == "message" || data.type == 'image') {
                 let ori_list = that.scoreList;
-                //console.log(ori_list)
                 let tmp = new Object();
                 if(data.type == 'message'){
                     tmp.content = data.content;
@@ -165,10 +137,10 @@ var header = new Vue({
                 tmp.name = data.user;
                 ori_list.push(tmp);
                 //that.drawingUser = data.drawingUser;
-                that.scoreList = ori_list;
+                //that.scoreList = ori_list;
                 that.extra = data.extra;
                 that.score = data.score;
-                that.users = data.users;
+                //that.users = data.users;
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
@@ -181,7 +153,7 @@ var header = new Vue({
             } else if (data.type === 'line') {
                 this.drawLine(data.startX, data.startY, data.endX, data.endY, 1);
             } else if (data.type === 'users') {
-
+                console.log(data)
                 that.extra = data.extra;
                 that.users = data.users;
                 that.score = data.score;
@@ -198,13 +170,31 @@ var header = new Vue({
                 that.drawingUser = data.drawingUser;
                 that.extra = data.extra;
                 that.score = data.score;
-                that.users = data.users;
+                //that.users = data.users;
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
+            } else if (data.type == "change_score") {
+                let that=this;
+                let ori_list = that.scoreList;
+                that.users.forEach(function (v,k) {
+                    if(v.name == data.user){
+                        that.users[k].score = data.score;
+                    }
+                })
+                if (data.clearBoard == 1) {
+                    this.clearBoard();
+                }
+                let tmp = new Object();
+                tmp.content = data.content;
+                tmp.content_type = data.content_type;
+                tmp.name = data.content_user;
+                ori_list.push(tmp);
+                console.log(ori_list)
+                //that.drawingUser = data.drawingUser;
+                that.scoreList = ori_list;
+                console.log(data)
             }
-
-
         },
         login() {
             var name = prompt("请输入您的名字", ""); //将输入的内容赋给变量 name ，
@@ -236,12 +226,10 @@ var header = new Vue({
             }
         },
         startgame() {
-            console.log(44)
             let that = this;
             let data = {};
             data.type = "startgame";
             data.user = this.name;
-            console.log(data)
             that.socket.send(JSON.stringify(data));
         },
         drawline(event) {
