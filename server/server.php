@@ -32,6 +32,7 @@ class WebsocketDraw
 
         $this->resetWords();
         $this->server->on('open', function (swoole_websocket_server $server, $request) {
+            $this->onEnterRoom();
             //$this->my_color = $this->colors[mt_rand(0, count($this->colors))];
         });
         $this->server->on('message', function (Swoole\WebSocket\Server $server, $frame) {
@@ -133,6 +134,7 @@ class WebsocketDraw
             echo "client {$fd} closed\n";
         });
         $this->server->on('request', function ($request, $response) {
+            echo 'connet1';
             // 接收http请求从get获取message参数的值，给用户推送
             // $this->server->connections 遍历所有websocket连接用户的fd，给所有用户推送
             foreach ($this->server->connections as $fd) {
@@ -218,6 +220,38 @@ class WebsocketDraw
         }
     }
 
+    //当玩家进入房间
+    public function onEnterRoom(){
+        $server = $this->server;
+        $user_keys = $this->redis->keys('users*');
+        $keys_user = [];
+        $fd_user = [];
+        $tmp_user = [];
+        foreach ($user_keys as $v) {
+            $user_info = !empty($this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score'])) ? $this->redis->hMGet($v, ['fd', 'name', 'seat_num', 'score']) : [];
+            $keys_user[$user_info['seat_num']] = $user_info;
+            $tmp_user[] = ['name' => $user_info['name'], 'fd' => $user_info['fd'], 'score' => $user_info['score']];
+            $fd_user[$user_info['name']] = $user_info['fd'];
+        }
+        $seats = [];
+        for ($i = 1; $i <= 4; $i++) {
+            if (key_exists($i, $keys_user)) {
+                $seats[] = ['name' => $keys_user[$i]['name']];
+            } else {
+                $seats[] = ['name' => '空位'];
+            }
+        }
+        foreach ($server->connections as $key => $fd) {
+            $res_data['content'] = '';
+            $res_data['type'] = 'enter_room';
+            $res_data['users'] = $tmp_user;
+            $res_data['seats'] = $seats;
+            $res_data['color'] = $this->my_color;
+            $res_data['createAt'] = date('m-d H:i:s');
+            $server->push($fd, json_encode($res_data));
+        }
+    }
+
     public function resetWords()
     {
         $this->answer = $this->words[mt_rand(0, count($this->words) - 1)];
@@ -249,7 +283,7 @@ class WebsocketDraw
         }
         //调整当前画画人索引
         $draw_index = $this->setDrawIndex($increase_index);
-
+        echo 'draw_index:'.$draw_index;
         foreach ($tmp_user as $k => $v) {
             if ($k == $draw_index) {
                 $current_user = $v['name'];
@@ -266,7 +300,7 @@ class WebsocketDraw
                 $res_data['content_type'] = 'text';
                 $res_data['content_user'] = '系统';
                 $res_data['extra'] = array_search($fd, $fd_user) == $current_user ? "你要画的是:{$answer}" : '快点猜吧';
-                $res_data['user'] = $data['user'];
+                $res_data['user'] = $user;
                 $res_data['score'] = $user_info['score'];
                 $res_data['seats'] = $seats;
                 $res_data['clearBoard'] = $increase_index;
@@ -275,6 +309,7 @@ class WebsocketDraw
             } else {
                 $res_data['content'] = $content;
                 $res_data['type'] = $type;
+                $res_data['content_type'] = 'text';
                 $res_data['extra'] = array_search($fd, $fd_user) == $current_user ? "你要画的是:{$answer}" : '快点猜吧';
                 $res_data['user'] = $user;
                 $res_data['users'] = $tmp_user;
@@ -284,6 +319,7 @@ class WebsocketDraw
                 $res_data['color'] = $this->my_color;
                 $res_data['createAt'] = date('m-d H:i:s');
             }
+            print_r($res_data);
 
             $server->push($fd, json_encode($res_data));
         }

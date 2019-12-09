@@ -130,6 +130,7 @@ var header = new Vue({
                 let tmp = new Object();
                 if(data.type == 'message'){
                     tmp.content = data.content;
+                    tmp.content_type = 'text';
                 } else {
                     tmp.url = data.url;
                 }
@@ -193,7 +194,8 @@ var header = new Vue({
                 console.log(ori_list)
                 //that.drawingUser = data.drawingUser;
                 that.scoreList = ori_list;
-                console.log(data)
+            } else if (data.type == "enter_room") {
+                that.seats = data.seats;
             }
         },
         login() {
