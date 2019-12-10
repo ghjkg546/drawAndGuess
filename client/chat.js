@@ -69,6 +69,7 @@ var header = new Vue({
         ctx: {},
         name: '',//登录的用户名
         extra: '',
+        remain_time:'',
         current_color : '#339933',
         penWidth: 1,
         imageList : ['images/wz_2.jpg','images/wz_3.jpg','images/wz_1.jpg','images/wz_5.jpg'],
@@ -153,7 +154,10 @@ var header = new Vue({
 
             } else if (data.type === 'line') {
                 this.drawLine(data.startX, data.startY, data.endX, data.endY, 1);
-            } else if (data.type === 'users') {
+            }  else if (data.type === 'timer') {
+                that.remain_time = data.remain_time;
+            }
+            else if (data.type === 'users') {
                 console.log(data)
                 that.extra = data.extra;
                 that.users = data.users;
@@ -191,8 +195,6 @@ var header = new Vue({
                 tmp.content_type = data.content_type;
                 tmp.name = data.content_user;
                 ori_list.push(tmp);
-                console.log(ori_list)
-                //that.drawingUser = data.drawingUser;
                 that.scoreList = ori_list;
             } else if (data.type == "enter_room") {
                 that.seats = data.seats;
