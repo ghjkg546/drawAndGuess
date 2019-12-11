@@ -76,7 +76,8 @@ var header = new Vue({
         showPicBox:0,
         score:[],
         seats : [{'name':'空位'},{'name':'空位'},{'name':'空位'},{'name':'空位'}],
-        seatNum:0
+        seatNum:0,
+        gameStatus:'wait'
 
     },
 
@@ -171,10 +172,10 @@ var header = new Vue({
             else if (data.type === 'pen_width') {
                 that.penWidth = data.width;
             } else if (data.type == "startgame") {
-                console.log(data.drawingUser)
                 that.drawingUser = data.drawingUser;
                 that.extra = data.extra;
                 that.score = data.score;
+                that.gameStatus = 'playing';
                 //that.users = data.users;
                 if (data.clearBoard == 1) {
                     this.clearBoard();
@@ -182,6 +183,7 @@ var header = new Vue({
             } else if (data.type == "change_score") {
                 let that=this;
                 let ori_list = that.scoreList;
+                console.log(data)
                 that.users.forEach(function (v,k) {
                     if(v.name == data.user){
                         that.users[k].score = data.score;
@@ -192,6 +194,8 @@ var header = new Vue({
                 }
                 let tmp = new Object();
                 tmp.content = data.content;
+                that.extra = data.extra;
+                that.drawingUser = data.drawingUser;
                 tmp.content_type = data.content_type;
                 tmp.name = data.content_user;
                 ori_list.push(tmp);

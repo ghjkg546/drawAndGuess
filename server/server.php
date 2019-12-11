@@ -11,8 +11,8 @@ class WebsocketDraw
     public $socket_obj = [];
     public $redis = [];
     public $draw_index = 0; //当前画画人的索引
-    public $remain_time = 15;
-    public $max_remain_time = 15;
+    public $remain_time = 30;
+    public $max_remain_time = 30;
     public $user_count=0;
 
     public function __construct()
@@ -117,7 +117,6 @@ class WebsocketDraw
                     $this->redis->set('remain_time', $this->max_remain_time);
 
                     foreach ($server->connections as $key => $fd) {
-                        echo $draw_index.'-'.$key.'-'."\n\r";
                         $res_data['extra'] = $key == ($draw_index+1)? "你要画的是:{$answer}" : '快点猜吧';
                         $res_data['content'] = '游戏开始了';
                         $res_data['type'] = 'startgame';
@@ -125,7 +124,6 @@ class WebsocketDraw
                         $res_data['createAt'] = date('m-d H:i:s');
                         $server->push($fd, json_encode($res_data));
                     }
-                    var_dump($this->redis->get('remain_time'));
                     $this->gameLoop();
                     break;
                 default:
@@ -315,6 +313,7 @@ class WebsocketDraw
             $tmp_user[] = ['name' => $user_info['name'], 'fd' => $user_info['fd'], 'score' => $user_info['score']];
             $fd_user[$user_info['name']] = $user_info['fd'];
         }
+        $tmp_user = array_reverse($tmp_user);
         $seats = [];
         for ($i = 1; $i <= 4; $i++) {
             if (key_exists($i, $keys_user)) {
@@ -330,14 +329,35 @@ class WebsocketDraw
         }
         $type = $increase_index ? 'change_score' : $type;
         $user = $increase_index ? '系统' : $data['user'];
+        $current_user = '';
+        $draw_index = 0;
+        if($type == 'change_score'){
+            $draw_index = $this->setDrawIndex(1);
+            echo 'index:'.$draw_index;
+            foreach ($tmp_user as $k => $v) {
+                if ($k == $draw_index) {
+                    $current_user = $v['name'];
+                }
+            }
+        }
+        $correct_user = [];
+        foreach ($tmp_user as $v){
+            if($v['name'] == $data['user']){
+                $correct_user = $v;
+            }
+        }
+        print_r($correct_user);
+        $answer = $this->redis->get('answer');
         foreach ($server->connections as $key => $fd) {
             if($type == 'change_score'){
                 $res_data['content'] = $content;
                 $res_data['type'] = $type;
+                $res_data['extra'] = $key == ($draw_index+1)? "你要画的是:{$answer}" : '快点猜吧';
                 $res_data['content_type'] = 'text';
                 $res_data['content_user'] = '系统';
-                $res_data['user'] = $user;
-                $res_data['score'] = $user_info['score'];
+                $res_data['drawingUser'] = $current_user;
+                $res_data['user'] = $correct_user['name'];
+                $res_data['score'] = $correct_user['score'];
                 $res_data['seats'] = $seats;
                 $res_data['clearBoard'] = $increase_index;
                 $res_data['createAt'] = date('m-d H:i:s');
