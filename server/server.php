@@ -222,7 +222,8 @@ class WebsocketDraw
     //获取用户数量
     public function getUserCount()
     {
-        return count($this->redis->hGetAll('user_info'));
+        print_r($this->redis->get('user_info'));
+        return count($this->redis->get('user_info'));
     }
 
     //开始游戏循环
@@ -441,16 +442,16 @@ class WebsocketDraw
         }
         $answer = $this->redis->get('answer');
         foreach ($server->connections as $key => $fd) {
-                $res_data['content'] = $content;
-                $res_data['type'] = 'change_score';
-                $res_data['extra'] = $draw_user['fd']==$fd ? "你要画的是:{$answer}" : '快点猜吧';
-                $res_data['content_type'] = 'text';
-                $res_data['content_user'] = '系统';
-                $res_data['drawingUser'] = $current_user;
-                $res_data['user'] = $correct_user['name'];
-                $res_data['score'] = $correct_user['score'];
-                $res_data['clearBoard'] = 1;
-                $res_data['createAt'] = date('m-d H:i:s');
+            $res_data['content'] = $content;
+            $res_data['type'] = 'change_score';
+            $res_data['extra'] = $draw_user['fd']==$fd ? "你要画的是:{$answer}" : '快点猜吧';
+            $res_data['content_type'] = 'text';
+            $res_data['content_user'] = '系统';
+            $res_data['drawingUser'] = $current_user;
+            $res_data['user'] = $correct_user['name'];
+            $res_data['score'] = $correct_user['score'];
+            $res_data['clearBoard'] = 1;
+            $res_data['createAt'] = date('m-d H:i:s');
 
             $server->push($fd, json_encode($res_data));
         }
