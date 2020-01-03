@@ -86,7 +86,7 @@ var header = new Vue({
         let canvas = document.getElementById("canvas");
 
         that.ctx = canvas.getContext("2d");
-
+        that.name = localStorage.getItem('name') ? localStorage.getItem('name'):'';
         let msg = "";
 
         let address = "ws://192.168.60.132:9501";
@@ -180,15 +180,31 @@ var header = new Vue({
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
+            }else if (data.type == "restartgame") {
+                that.drawingUser = data.drawingUser;
+                that.extra = data.extra;
+                that.score = data.score;
+                that.gameStatus = 'restart';
+                //that.users = data.users;
+                if (data.clearBoard == 1) {
+                    this.clearBoard();
+                }
             } else if (data.type == "change_score") {
                 let that=this;
                 let ori_list = that.scoreList;
-                console.log(data)
-                that.users.forEach(function (v,k) {
-                    if(v.name == data.user){
-                        that.users[k].score = data.score;
-                    }
-                })
+                //增加答对人的分数
+                if(data.user){
+                    that.users.forEach(function (v,k) {
+                        if(v.name == data.user){
+                            that.users[k].score = data.score;
+                        }
+                    })
+                } else {
+                    //重置所有分数为0
+                    that.users.forEach(function (v,k) {
+                        that.users[k].score = 0;
+                    })
+                }
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
@@ -202,6 +218,9 @@ var header = new Vue({
                 that.scoreList = ori_list;
             } else if (data.type == "enter_room") {
                 that.seats = data.seats;
+            }else if (data.type == "end_game") {
+                that.gameStatus = 'restart';
+                alert('游戏结束,胜利者：'+data.winner)
             }
         },
         login() {
@@ -214,8 +233,8 @@ var header = new Vue({
                 data.user = name;
                 data.type = "bind";
                 data.seat_num = that.seatNum;
-                console.log(data)
                 that.socket.send(JSON.stringify(data));
+                localStorage.setItem('name',name);
             }
 
         },
@@ -237,6 +256,13 @@ var header = new Vue({
             let that = this;
             let data = {};
             data.type = "startgame";
+            data.user = this.name;
+            that.socket.send(JSON.stringify(data));
+        },
+        restartgame() {
+            let that = this;
+            let data = {};
+            data.type = "restartgame";
             data.user = this.name;
             that.socket.send(JSON.stringify(data));
         },
