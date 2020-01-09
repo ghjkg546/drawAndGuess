@@ -42,14 +42,15 @@ class WebsocketDraw
                     //答对了
                     if (trim($data['content']) == $this->redis->get('answer')) {
                         $this->resetWords();
+                        $this->increaseUserScore($frame->fd);
                         //增加分数
-                        $score = $this->redis->hMGet('users:' . $data['user'], ['score']);
-                        $score = current($score);
-                        $score += 10;
-                        $user_info = [
-                            'score' => $score
-                        ];
-                        $this->redis->hmSet('users:' . $data['user'], $user_info);
+//                        $score = $this->redis->hMGet('users:' . $data['user'], ['score']);
+//                        $score = current($score);
+//                        $score += 10;
+//                        $user_info = [
+//                            'score' => $score
+//                        ];
+//                        $this->redis->hmSet('users:' . $data['user'], $user_info);
                         $this->pushAnswerCorrectMessage($server, $data);
                     } else {
                         $this->socket_obj[$data['user']] = $frame->fd;
@@ -222,8 +223,7 @@ class WebsocketDraw
     //获取用户数量
     public function getUserCount()
     {
-        print_r($this->redis->get('user_info'));
-        return count($this->redis->get('user_info'));
+        return count($this->redis->hGetAll('user_info'));
     }
 
     //开始游戏循环
@@ -320,16 +320,19 @@ class WebsocketDraw
 
     //获取玩家的得分等信息
     public function getAllUserInfo($user_info_list){
-        return array_values($user_info_list);
+        $info = [];
+        foreach ($user_info_list as $v){
+            $info[] = json_decode($v,true);
+        }
+        return $info;
     }
 
     //获取座位上的玩家信息
     public function getSeatUser($user_info_list){
+        $keys_user = [];
         foreach ($user_info_list as $v) {
             $user_info = json_decode($v, true);
             $keys_user[$user_info['seat_num']] = $user_info;
-            $tmp_user[] = ['name' => $user_info['name'], 'fd' => $user_info['fd'], 'score' => $user_info['score']];
-            $fd_user[$user_info['name']] = $user_info['fd'];
         }
         $seats = [];
         for ($i = 1; $i <= 4; $i++) {
@@ -433,7 +436,6 @@ class WebsocketDraw
                 $current_user = $v['name'];
             }
         }
-        print_r($draw_user);
         $correct_user = [];
         foreach ($tmp_user as $v) {
             if ($v['name'] == $data['user']) {
@@ -572,7 +574,16 @@ class WebsocketDraw
     }
 
     public function getUserInfoByFd($fd){
-        return json_decode($this->redis->get('user_info',$fd));
+        return json_decode($this->redis->hGet('user_info',$fd));
+    }
+
+    //增加用户分数
+    public function increaseUserScore($fd)
+    {
+        $user_info = json_decode($this->redis->hGet('user_info', $fd),true);
+        $score = $user_info['score'] + 10;
+        $user_info['score'] = $score;
+        $this->redis->hSet('user_info', $fd, json_encode($user_info));
     }
 
     public function getUserNameByFd($fd)

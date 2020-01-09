@@ -36,10 +36,6 @@
         <ul>
             <li v-for="(item, key, index) in users">{{item.name}}-得分：{{item.score}}</li>
         </ul>
-        分数:
-        <ul>
-            <li v-for="(item, key, index) in score">{{item.name}}:{{item.score}}</li>
-        </ul>
         <p>画笔选项</p>
         <div class="draw_options" v-show="drawingUser == name">
             <p>画笔颜色</p>
