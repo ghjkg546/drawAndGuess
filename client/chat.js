@@ -100,7 +100,12 @@ var header = new Vue({
         };
 
         this.socket.onmessage = this.websocketonmessage;
-
+        document.onkeydown = function (e) {
+            var key = window.event.keyCode;
+            if (key == 13) {
+                that.sendmsg();
+            }
+        }
     },
     watch: {
         current_color(val) {
@@ -139,11 +144,8 @@ var header = new Vue({
                 tmp.type = data.type;
                 tmp.name = data.user;
                 ori_list.push(tmp);
-                //that.drawingUser = data.drawingUser;
-                //that.scoreList = ori_list;
                 that.extra = data.extra;
                 that.score = data.score;
-                //that.users = data.users;
                 if (data.clearBoard == 1) {
                     this.clearBoard();
                 }
@@ -159,13 +161,22 @@ var header = new Vue({
                 that.remain_time = data.remain_time;
             }
             else if (data.type === 'users') {
-                console.log(data)
+                //推送加入房间，退出房间灯消息
+                if (data.content_type == 'text') {
+                    let that = this;
+                    let ori_list = that.scoreList;
+                    let tmp = new Object();
+                    tmp.content = data.content;
+                    tmp.content_type = data.content_type;
+                    tmp.name = '系统';
+                    ori_list.push(tmp);
+                    that.scoreList = ori_list;
+                }
                 that.extra = data.extra;
                 that.users = data.users;
                 that.score = data.score;
                 that.seats = data.seats;
                 console.log(that.seats);
-                //that.drawingUser = data.drawingUser;
             } else if (data.type === 'change_color') {
                 that.current_color = data.color;
             }
